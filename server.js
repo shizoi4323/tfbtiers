@@ -6,6 +6,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get("/", (req, res) => {
+  res.send("OK");
+});
+
 app.post("/roblox-user", async (req, res) => {
   const { username } = req.body;
 
