@@ -1,0 +1,1600 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TFBTiers</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&amp;family=Outfit:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+  <script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        bg: '#0a0a0f',
+        surface: '#12121a',
+        card: '#1a1a26',
+        accent: '#00e5a0',
+        accentDim: '#00b87d',
+        muted: '#8888a0',
+        border: '#2a2a3a',
+      }
+    }
+  }
+}
+</script>
+  <style>
+
+#admin-modal {
+  z-index: 9999 !important;
+}
+
+#user-dropdown {
+  animation: fadeUp 0.2s ease;
+}
+
+html, body { height: 100%; margin: 0; }
+body { font-family: 'Outfit', sans-serif; background: #0a0a0f; color: #e0e0f0; }
+
+.glow-line {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00e5a0, transparent);
+}
+
+.player-card {
+  padding: 0; /* ya no lo usamos igual */
+  border: none;
+}
+
+.group:hover {
+  transform: translateX(4px);
+}
+
+.tab-active {
+  background: linear-gradient(135deg, #00e5a022, #00e5a011);
+  border-color: #00e5a0;
+  color: #00e5a0;
+}
+
+.rank-row:hover { background: #1e1e2e; }
+.rank-row { transition: background 0.15s; }
+
+.rank-1 .rank-badge { background: linear-gradient(135deg, #ffd700, #b8860b); color: #000; }
+.rank-2 .rank-badge { background: linear-gradient(135deg, #c0c0c0, #808080); color: #000; }
+.rank-3 .rank-badge { background: linear-gradient(135deg, #cd7f32, #8b4513); color: #fff; }
+
+.hero-bg {
+  background: radial-gradient(ellipse at 30% 0%, #00e5a012 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 100%, #6366f112 0%, transparent 50%);
+}
+
+.filter-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2388a0' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #1a1a26 25%, #22222e 50%, #1a1a26 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.4s ease both; }
+
+.nav-link { position: relative; }
+.nav-link::after {
+  content: ''; position: absolute; bottom: -2px; left: 50%; width: 0; height: 2px;
+  background: #00e5a0; transition: all 0.2s; transform: translateX(-50%);
+}
+.nav-link:hover::after { width: 100%; }
+
+.hex-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5 L52 17.5 L52 42.5 L30 55 L8 42.5 L8 17.5Z' fill='none' stroke='%23ffffff06' stroke-width='1'/%3E%3C/svg%3E");
+}
+
+.stat-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;
+}
+
+.player-card {
+  padding: 12px;
+  border-bottom: 1px solid #2a2a3a;
+  text-align: center;
+  transition: background 0.15s;
+}
+
+.player-card:hover {
+  background: rgba(0, 229, 160, 0.05);
+}
+
+.player-card:last-child {
+  border-bottom: none;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0a0a0f; }
+::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 3px; }
+</style>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full overflow-auto">
+  <div id="app" class="w-full min-h-full hex-pattern">
+   <!-- NAV -->
+   <nav class="w-full sticky top-0 z-50 bg-bg/90 backdrop-blur-md border-b border-border">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14">
+     <div class="flex items-center gap-6">
+      <a href="#" class="flex items-center gap-2 group"> <img src="https://i.ibb.co/XrHSsWWj/5-WDTEs-AAAAGSURBVAMA7y58-Af4g-V4-YAAAAASUVORK5-CYII-1.png" alt="TFB Logo" class="h-8 px-2 rounded-lg" loading="lazy" onerror="console.error('Logo image failed to load:', this.src); this.style.background='#00e5a033'; this.alt='Logo unavailable';"> </a>
+      <div class="hidden md:flex items-center gap-1">
+       <a href="#rankings" class="nav-link px-3 py-1.5 rounded text-sm font-medium text-accent hover:bg-accent/10 transition">Rankings</a> <a href="#info" class="nav-link px-3 py-1.5 rounded text-sm font-medium text-muted hover:text-white hover:bg-white/5 transition">Information</a>
+      </div>
+     </div>
+     <div class="flex items-center gap-3">
+      <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-accent/30 bg-accent/5"><i data-lucide="users" style="width:16px;height:16px" class="text-accent"></i> <span id="stat-players" class="text-sm font-semibold text-accent">0</span> <span class="text-xs text-muted">Players</span>
+      </div><a href="https://discord.gg/97pN38WTS6" target="_blank"
+      class="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-[#5865F2] hover:bg-[#4752C4] text-white text-sm font-semibold transition">
+
+        <!-- ICONO DISCORD (el que ya tenías) -->
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
+        </svg> Discord </a> <button id="mobile-menu-btn" class="md:hidden p-2 text-muted hover:text-white"> <i data-lucide="menu" style="width:20px;height:20px"></i> </button>
+        <div id="auth-area">
+          <button id="open-auth"
+          class="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-accent hover:bg-accentDim text-black text-sm font-semibold transition">
+          📝 Registro
+          </button>
+        </div>  
+     </div>
+    </div><!-- Mobile menu -->
+    <div id="mobile-menu" class="hidden md:hidden border-t border-border px-4 py-3 space-y-1">
+     <a href="#rankings" class="block px-3 py-2 rounded text-sm text-accent font-medium">Rankings</a> <a href="#info" class="block px-3 py-2 rounded text-sm text-muted hover:text-white">Information</a>
+    </div>
+   </nav><!-- HERO -->
+   <section class="hero-bg w-full py-12 sm:py-16 px-4">
+    <div class="max-w-7xl mx-auto text-center fade-up">
+     <h1 id="hero-heading" class="text-4xl sm:text-5xl font-bold tracking-tight mb-3" style="font-family:'Rajdhani',sans-serif">TFB Rankings</h1>
+     <div class="glow-line max-w-xs mx-auto mb-4"></div>
+     <p class="text-muted text-sm sm:text-base max-w-md mx-auto">Compete. Climb. Dominate.</p>
+    </div>
+   </section><!-- MAIN CONTENT -->
+   <main id="rankings" class="max-w-7xl mx-auto px-4 sm:px-6 pb-16">
+    <!-- CATEGORY TABS -->
+    <div class="flex flex-col items-center gap-6 mb-8 fade-up" style="animation-delay:0.1s">
+     <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-9 gap-3">
+      <button data-cat="overall" class="cat-tab tab-active flex flex-col items-center gap-2 p-3 rounded-xl border border-accent bg-card/60 hover:bg-card transition group" style="font-family:'Rajdhani',sans-serif">
+       <div class="w-8 h-8 rounded-lg border border-accent/30 bg-accent/20 flex items-center justify-center text-lg">
+        🏆
+       </div><span class="text-xs font-semibold text-accent">Overall</span> </button> <button data-cat="1vs1" class="cat-tab flex flex-col items-center gap-2 p-3 rounded-xl border border-border text-muted hover:text-white hover:border-accent/30 transition group" style="font-family:'Rajdhani',sans-serif">
+       <img src="https://i.ibb.co/ksZc8m5n/image.png" alt="1vs1 icon" class="w-8 h-8 rounded-lg border border-border bg-white/5 object-cover" loading="lazy" onerror="console.error('1vs1 icon failed to load'); this.style.background='#ffffff0a';">
+       <span class="text-xs font-semibold">1vs1</span> </button> <button data-cat="4vs4" class="cat-tab flex flex-col items-center gap-2 p-3 rounded-xl border border-border text-muted hover:text-white hover:border-accent/30 transition group" style="font-family:'Rajdhani',sans-serif">
+       <img src="https://i.ibb.co/dw3TnN6Q/image.png" alt="4vs4 icon" class="w-8 h-8 rounded-lg border border-border bg-white/5 object-cover" loading="lazy" onerror="console.error('4vs4 icon failed to load'); this.style.background='#ffffff0a';">
+       <span class="text-xs font-semibold">4vs4</span> </button> <button data-cat="control" class="cat-tab flex flex-col items-center gap-2 p-3 rounded-xl border border-border text-muted hover:text-white hover:border-accent/30 transition group" style="font-family:'Rajdhani',sans-serif">
+       <img src="https://i.ibb.co/V0p1MpGf/image.png" alt="Control icon" class="w-8 h-8 rounded-lg border border-border bg-white/5 object-cover" loading="lazy" onerror="console.error('Control icon failed to load'); this.style.background='#ffffff0a';">
+       <span class="text-xs font-semibold">Control</span> </button> <button data-cat="stats" class="cat-tab flex flex-col items-center gap-2 p-3 rounded-xl border border-border text-muted hover:text-white hover:border-accent/30 transition group" style="font-family:'Rajdhani',sans-serif">
+       <img src="https://i.ibb.co/h1xNNHQX/image.png" alt="Stats icon" class="w-8 h-8 rounded-lg border border-border bg-white/5 object-cover" loading="lazy" onerror="console.error('Stats icon failed to load'); this.style.background='#ffffff0a';">
+       <span class="text-xs font-semibold">Stats</span> </button> <button data-cat="tsw" class="cat-tab flex flex-col items-center gap-2 p-3 rounded-xl border border-border text-muted hover:text-white hover:border-accent/30 transition group" style="font-family:'Rajdhani',sans-serif"> <img src="https://tr.rbxcdn.com/180DAY-5bfa663452af4d31504e3b0da0251849/420/420/Image/Webp/noFilter" alt="TSW icon" class="w-8 h-8 rounded-lg border border-border bg-white/5 object-cover" loading="lazy" onerror="console.error('TSW icon failed to load'); this.style.background='#ffffff0a';"> <span class="text-xs font-semibold">TSW</span> </button> <button data-cat="tfl" class="cat-tab flex flex-col items-center gap-2 p-3 rounded-xl border border-border text-muted hover:text-white hover:border-accent/30 transition group" style="font-family:'Rajdhani',sans-serif"> <img src="https://i.ibb.co/Y4WNpv03/image-removebg-preview.png" alt="TFL icon" class="w-8 h-8 rounded-lg border border-border bg-white/5 object-cover" loading="lazy" onerror="console.error('TFL icon failed to load'); this.style.background='#ffffff0a';"> <span class="text-xs font-semibold">TFL</span> </button> <button data-cat="fwt" class="cat-tab flex flex-col items-center gap-2 p-3 rounded-xl border border-border text-muted hover:text-white hover:border-accent/30 transition group" style="font-family:'Rajdhani',sans-serif"> <img src="https://i.ibb.co/F4KhzVjn/channels4-profile-removebg-preview.png" alt="FWT icon" class="w-8 h-8 rounded-lg border border-border bg-white/5 object-cover" loading="lazy" onerror="console.error('FWT icon failed to load'); this.style.background='#ffffff0a';"> <span class="text-xs font-semibold">FWT</span> </button> <button data-cat="dex" class="cat-tab flex flex-col items-center gap-2 p-3 rounded-xl border border-border text-muted hover:text-white hover:border-accent/30 transition group" style="font-family:'Rajdhani',sans-serif"> <img src="https://i.ibb.co/DfZxn7Hk/image-removebg-preview-1.png" alt="DEX icon" class="w-8 h-8 rounded-lg border border-border bg-white/5 object-cover" loading="lazy" onerror="console.error('DEX icon failed to load'); this.style.background='#ffffff0a';"> <span class="text-xs font-semibold">DEX</span> </button>
+     </div>
+    </div><!-- FILTERS (only for Overall) -->
+    <div id="filters-row" class="flex flex-wrap items-center gap-3 mb-6 fade-up" style="animation-delay:0.15s">
+     <div class="flex items-center gap-2">
+      <i data-lucide="filter" style="width:14px;height:14px" class="text-muted"></i> <span class="text-xs text-muted font-semibold uppercase tracking-wider">Filters</span>
+     </div><select id="filter-position" class="filter-select bg-card border border-border text-sm text-white rounded-lg px-3 py-2 pr-8 focus:outline-none focus:border-accent/50 cursor-pointer"> <option value="ALL">All Positions</option> <option value="ST">ST</option> <option value="CDM">CDM</option> <option value="GK">GK</option> </select> <select id="filter-region" class="filter-select bg-card border border-border text-sm text-white rounded-lg px-3 py-2 pr-8 focus:outline-none focus:border-accent/50 cursor-pointer"> <option value="ALL">All Regions</option> <option value="NA">NA</option> <option value="SA">SA</option> <option value="EU">EU</option> <option value="AS">AS</option> <option value="AF">AF</option> <option value="OC">OC</option> </select> <button onclick="clearFilters()" id="clear-filters" class="text-xs text-accent/70 hover:text-accent transition hidden">Clear Filters</button>
+    </div><!-- OVERALL RANKING TABLE -->
+    <div id="overall-section" class="fade-up" style="animation-delay:0.2s">
+     <div class="bg-surface rounded-xl border border-border overflow-hidden">
+      <!-- Table header -->
+      <div class="grid gap-2 px-4 sm:px-6 py-3 bg-card/60 border-b border-border text-xs text-muted font-semibold uppercase tracking-wider" style="font-family:'Rajdhani',sans-serif; grid-template-columns: 0.3fr 0.5fr 1.5fr 0.4fr 0.8fr;">
+       <div class="text-center">
+        #
+       </div>
+       <div class="text-center">
+        Position
+       </div>
+       <div>
+        Player
+       </div>
+       <div class="text-center">
+        Region
+       </div>
+       <div class="text-center">
+        Tier
+       </div>
+      </div><!-- Table body -->
+      <div id="table-body">
+       <div class="flex flex-col items-center justify-center py-20 text-muted gap-3">
+        <i data-lucide="users" style="width:40px;height:40px;opacity:0.3"></i>
+        <p class="text-sm">No players yet</p>
+        <p class="text-xs text-muted/60">Players will appear here once added from the backend</p>
+       </div>
+      </div>
+     </div>
+    </div><!-- TIER COLUMNS (For other 8 categories) -->
+    <div id="tier-section" class="hidden fade-up" style="animation-delay:0.2s">
+     <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <!-- Tier 1 - Gold -->
+      <div class="bg-surface rounded-xl border border-amber-600/30 overflow-hidden">
+       <div class="bg-gradient-to-r from-yellow-600 to-amber-700 px-4 py-3 flex items-center gap-2">
+        <i data-lucide="trophy" style="width:16px;height:16px" class="text-yellow-200"></i>
+        <h3 class="font-bold text-sm text-yellow-100" style="font-family:'Rajdhani',sans-serif">Tier 1</h3>
+       </div>
+       <div id="tier-1-body" class="divide-y divide-border">
+        <div class="flex items-center justify-center py-12 text-muted/40">
+         <p class="text-xs">No players</p>
+        </div>
+       </div>
+      </div><!-- Tier 2 - Silver -->
+      <div class="bg-surface rounded-xl border border-gray-400/30 overflow-hidden">
+       <div class="bg-gradient-to-r from-gray-300 to-gray-500 px-4 py-3 flex items-center gap-2">
+        <i data-lucide="medal" style="width:16px;height:16px" class="text-gray-100"></i>
+        <h3 class="font-bold text-sm text-gray-100" style="font-family:'Rajdhani',sans-serif">Tier 2</h3>
+       </div>
+       <div id="tier-2-body" class="divide-y divide-border">
+        <div class="flex items-center justify-center py-12 text-muted/40">
+         <p class="text-xs">No players</p>
+        </div>
+       </div>
+      </div><!-- Tier 3 - Bronze -->
+      <div class="bg-surface rounded-xl border border-orange-700/30 overflow-hidden">
+       <div class="bg-gradient-to-r from-orange-600 to-amber-700 px-4 py-3 flex items-center gap-2">
+        <i data-lucide="award" style="width:16px;height:16px" class="text-orange-100"></i>
+        <h3 class="font-bold text-sm text-orange-100" style="font-family:'Rajdhani',sans-serif">Tier 3</h3>
+       </div>
+       <div id="tier-3-body" class="divide-y divide-border">
+        <div class="flex items-center justify-center py-12 text-muted/40">
+         <p class="text-xs">No players</p>
+        </div>
+       </div>
+      </div><!-- Tier 4 - Gray -->
+      <div class="bg-surface rounded-xl border border-gray-500/30 overflow-hidden">
+       <div class="bg-gradient-to-r from-gray-500 to-gray-700 px-4 py-3 flex items-center gap-2">
+        <i data-lucide="user" style="width:16px;height:16px" class="text-gray-200"></i>
+        <h3 class="font-bold text-sm text-gray-200" style="font-family:'Rajdhani',sans-serif">Tier 4</h3>
+       </div>
+       <div id="tier-4-body" class="divide-y divide-border">
+        <div class="flex items-center justify-center py-12 text-muted/40">
+         <p class="text-xs">No players</p>
+        </div>
+       </div>
+      </div><!-- Tier 5 - Muted -->
+      <div class="bg-surface rounded-xl border border-border overflow-hidden">
+       <div class="bg-muted px-4 py-3 flex items-center gap-2 border-b border-border">
+        <i data-lucide="users" style="width:16px;height:16px" class="text-surface"></i>
+        <h3 class="font-bold text-sm text-surface" style="font-family:'Rajdhani',sans-serif">Tier 5</h3>
+       </div>
+       <div id="tier-5-body" class="divide-y divide-border">
+        <div class="flex items-center justify-center py-12 text-muted/40">
+         <p class="text-xs">No players</p>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div><!-- INFORMATION SECTION -->
+    <section id="info" class="mt-16 fade-up" style="animation-delay:0.3s">
+     <div class="flex items-center gap-3 mb-6">
+      <div class="w-1 h-8 rounded-full bg-accent"></div>
+      <h2 class="text-2xl font-bold" style="font-family:'Rajdhani',sans-serif">Information</h2>
+     </div>
+     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="bg-surface rounded-xl border border-border p-5 hover:border-accent/30 transition group">
+       <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center mb-3 group-hover:bg-accent/20 transition">
+        <i data-lucide="trophy" style="width:20px;height:20px" class="text-accent"></i>
+       </div>
+       <h3 class="font-semibold text-sm mb-2" style="font-family:'Rajdhani',sans-serif">Ranking System</h3>
+       <p id="info-text-1" class="text-xs text-muted leading-relaxed">Rankings update every 24 hours based on match performance across all game modes. Your overall tier reflects combined skill.</p>
+      </div>
+      <div class="bg-surface rounded-xl border border-border p-5 hover:border-accent/30 transition group">
+       <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center mb-3 group-hover:bg-accent/20 transition">
+        <i data-lucide="shield" style="width:20px;height:20px" class="text-accent"></i>
+       </div>
+       <h3 class="font-semibold text-sm mb-2" style="font-family:'Rajdhani',sans-serif">Tier Breakdown</h3>
+       <p class="text-xs text-muted leading-relaxed">Tiers range from S+ (elite) down to D. Each tier has rating thresholds that shift with the competitive landscape.</p>
+      </div>
+      <div class="bg-surface rounded-xl border border-border p-5 hover:border-accent/30 transition group sm:col-span-2 lg:col-span-1">
+       <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center mb-3 group-hover:bg-accent/20 transition">
+        <i data-lucide="globe" style="width:20px;height:20px" class="text-accent"></i>
+       </div>
+       <h3 class="font-semibold text-sm mb-2" style="font-family:'Rajdhani',sans-serif">Regions &amp; Modes</h3>
+       <p class="text-xs text-muted leading-relaxed">Players compete across 6 regions and 8 specialized categories. Filter by position and region to find your rivals.</p>
+      </div>
+     </div>
+    </section>
+   </main><!-- FOOTER -->
+   <footer class="w-full border-t border-border py-6 px-4">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted">
+     <span>© 2025 TFBTiers — All rights reserved</span> <span class="flex items-center gap-1">Built with <span class="text-accent">♥</span></span>
+    </div>
+          <!-- PLAYER MODAL -->
+      <div id="player-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+
+        <!-- Card -->
+        <div id="modal-card" class="bg-[#12121a] w-[400px] max-w-[90%] rounded-2xl p-6 relative text-center">
+
+          <!-- Close -->
+          <button id="close-modal" class="absolute top-3 right-3 text-white/60 hover:text-white text-xl">
+            ✕
+          </button>
+
+          <!-- Avatar -->
+          <img id="modal-avatar" class="w-20 h-20 rounded-full mx-auto mb-3 border-2 border-yellow-400"/>
+
+          <!-- Name -->
+          <h2 id="modal-name" class="text-xl font-bold"></h2>
+
+          <!-- Rank -->
+          <div id="modal-rank" class="text-xs text-yellow-400 mb-2"></div>
+
+          <!-- Region -->
+          <div id="modal-region" class="text-sm text-muted mb-4"></div>
+
+          <!-- Position -->
+          <div class="text-left text-sm mb-2 font-semibold">POSITION</div>
+          <div id="modal-position" class="mb-4"></div>
+
+          <!-- Tiers -->
+          <div class="text-left text-sm mb-2 font-semibold">TIERS</div>
+          <div id="modal-tiers" class="flex flex-wrap gap-2 justify-center"></div>
+
+        </div>
+      </div>
+      <!-- REGISTER MODAL -->
+      <div id="register-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+
+        <div id="register-card" class="bg-[#12121a] w-[420px] max-w-[90%] rounded-2xl p-6 relative">
+
+          <!-- CLOSE -->
+          <button id="close-register" class="absolute top-3 right-3 text-white/60 hover:text-white text-xl">
+            ✕
+          </button>
+
+          <!-- STEP 1 -->
+          <div id="step-1">
+            <h2 class="text-lg font-bold mb-4">Crear cuenta</h2>
+
+            <input id="reg-username" placeholder="Usuario"
+              class="w-full mb-3 px-3 py-2 rounded bg-card border border-border">
+
+            <input id="reg-password" type="password" placeholder="Contraseña"
+              class="w-full mb-4 px-3 py-2 rounded bg-card border border-border">
+
+            <div class="flex gap-2">
+              <button onclick="loginUser()"
+                class="w-full bg-green-500 text-black py-2 rounded font-semibold">
+                Login
+              </button>
+
+              <button id="register-next"
+                onclick="validateStep1()"
+                class="w-full bg-accent text-black py-2 rounded font-semibold opacity-50 cursor-not-allowed"
+                disabled>
+                Register
+              </button>
+            </div>
+          </div>
+
+          <!-- STEP 2 -->
+          <div id="step-2" class="hidden">
+            <h2 class="text-lg font-bold mb-4">Datos del jugador</h2>
+
+            <select id="reg-position" class="w-full mb-3 px-3 py-2 rounded bg-card border border-border">
+              <option value="ST">ST</option>
+              <option value="CDM">CDM</option>
+              <option value="GK">GK</option>
+            </select>
+
+            <select id="reg-region" class="w-full mb-3 px-3 py-2 rounded bg-card border border-border">
+              <option value="NA">NA</option>
+              <option value="SA">SA</option>
+              <option value="EU">EU</option>
+              <option value="AS">AS</option>
+              <option value="AF">AF</option>
+              <option value="OC">OC</option>
+            </select>
+
+            <input id="reg-roblox" placeholder="Usuario de Roblox"
+              class="w-full mb-4 px-3 py-2 rounded bg-card border border-border">
+
+            <button onclick="fetchRobloxUser()"
+              class="w-full bg-accent text-black py-2 rounded font-semibold">
+              Buscar cuenta
+            </button>
+          </div>
+
+          <!-- STEP 3 -->
+          <div id="step-3" class="hidden text-center">
+            <h2 class="text-lg font-bold mb-4">¿Es tu cuenta?</h2>
+
+            <img id="roblox-avatar" class="w-20 h-20 mx-auto rounded-full mb-3">
+
+            <div id="roblox-display" class="mb-4 font-semibold"></div>
+
+            <button onclick="confirmRegister()"
+              class="w-full bg-accent text-black py-2 rounded font-semibold mb-2">
+              Confirmar
+            </button>
+
+            <button onclick="nextStep(2)"
+              class="text-sm text-muted">
+              Volver
+            </button>
+          </div>
+
+        </div>
+      </div>
+   </footer>
+    <div id="admin-modal" class="fixed inset-0 bg-black/70 hidden z-50 flex items-center justify-center">
+      <div class="bg-[#12121a] w-[700px] max-w-[95%] rounded-2xl p-6">
+        <button id="close-admin"
+          class="absolute top-3 right-3 text-white/60 hover:text-white text-xl">
+          ✕
+        </button>
+
+        <h2 class="text-lg font-bold mb-4">Panel Admin</h2>
+        <!-- TABS -->
+        <div class="flex gap-2 mb-4">
+          <button onclick="switchAdminTab('pending')" class="admin-tab px-3 py-1 bg-accent text-black rounded text-sm">
+            Pending
+          </button>
+          <button onclick="switchAdminTab('tiers')" class="admin-tab px-3 py-1 bg-card border border-border rounded text-sm">
+            Editar Tiers
+          </button>
+        </div>
+        <!-- PENDING -->
+        <div id="admin-pending">
+          <div id="admin-list" class="space-y-2 max-h-[400px] overflow-auto"></div>
+        </div>
+        <!-- TIERS -->
+        <div id="admin-tiers" class="hidden">
+          <!-- BUSCADOR -->
+          <input id="admin-search"
+            placeholder="Buscar jugador..."
+            class="w-full mb-3 px-3 py-2 rounded bg-card border border-border"/>
+          <div id="admin-search-results" class="space-y-1 mb-4"></div>
+          <!-- EDITOR -->
+          <div id="admin-editor" class="hidden">
+
+            <h3 class="font-bold mb-2">Editar jugador</h3>
+
+            <div id="admin-player-name" class="mb-3 text-sm"></div>
+
+            <div id="admin-tiers-editor" class="grid grid-cols-2 gap-2"></div>
+
+            <button onclick="saveTiers()"
+              class="mt-4 w-full bg-accent text-black py-2 rounded font-semibold">
+              Guardar cambios
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+const defaultConfig = {
+  site_title: 'TFBTiers',
+  hero_heading: 'TFB Rankings',
+  info_text: 'Rankings update every 24 hours based on match performance across all game modes. Your overall tier reflects combined skill.',
+  background_color: '#0a0a0f',
+  surface_color: '#12121a',
+  text_color: '#e0e0f0',
+  accent_color: '#00e5a0',
+  muted_color: '#8888a0',
+  font_family: 'Outfit',
+  font_size: 14
+};
+
+const supabaseUrl = "https://ccluksocicjqdhbhdyvc.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjbHVrc29jaWNqcWRoYmhkeXZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NDQ3NDgsImV4cCI6MjA5MTAyMDc0OH0.0OAsH5Igt4rVA9pJzx4q--09tBs4YHTcHckH4ueLvKw";
+
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+async function checkUser() {
+  // 🔥 Esperar a que Supabase cargue sesión real
+  const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+  if (error) {
+    console.error("SESSION ERROR:", error);
+    return;
+  }
+
+  if (!session) {
+    console.log("NO SESSION");
+    return;
+  }
+
+  console.log("SESSION OK:", session);
+
+  const user = session.user;
+
+  // 🔹 traer profile
+  const { data: profile } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  // 🔹 traer player
+  const { data: player } = await supabaseClient
+    .from("players")
+    .select(`
+      id,
+      region,
+      position,
+      roblox_username,
+      roblox_display,
+      roblox_avatar_url,
+      player_category (
+        category_id,
+        subdivisions ( name, points )
+      )
+    `)
+    .eq("profile_id", user.id)
+    .single();
+
+  renderUser(user, profile, player);
+}
+
+checkUser();
+
+let currentCat = 'overall';
+let allPlayers = [];
+
+let activeFilters = {
+  region: "ALL",
+  position: "ALL"
+};
+
+function openPlayerModal(player) {
+  const modal = document.getElementById("player-modal");
+
+  document.getElementById("modal-avatar").src =
+    player.roblox_avatar_url || "https://via.placeholder.com/80";
+
+  document.getElementById("modal-name").textContent =
+    player.roblox_display || player.roblox_username;
+
+  const points = calculatePoints(player);
+  const rank = getRank(points);
+
+  document.getElementById("modal-rank").textContent =
+    `${rank} (${points} pts)`;
+
+  document.getElementById("modal-region").textContent =
+    player.region || "Unknown";
+
+  // posición overall
+  const sorted = [...allPlayers].sort((a, b) => calculatePoints(b) - calculatePoints(a));
+  const pos = sorted.findIndex(p => p.id === player.id) + 1;
+
+  document.getElementById("modal-position").innerHTML = `
+    <div class="bg-yellow-500 text-black px-3 py-1 rounded inline-block font-bold">
+      #${pos} OVERALL
+    </div>
+  `;
+
+  // tiers
+  document.getElementById("modal-tiers").innerHTML = player.player_category.map(pc => {
+    const icon = categoryIcons[pc.category_id];
+    const sub = pc.subdivisions?.name || "LT5";
+
+    let tier = 5;
+    if (sub.includes("1")) tier = 1;
+    else if (sub.includes("2")) tier = 2;
+    else if (sub.includes("3")) tier = 3;
+    else if (sub.includes("4")) tier = 4;
+
+    const type = sub.startsWith("HT") ? "HT" : "LT";
+    const color = tierColors[tier][type];
+
+    return `
+      <div class="flex flex-col items-center text-[10px]">
+        <div class="w-8 h-8 flex items-center justify-center rounded-full border border-white/10 ${color} overflow-hidden">
+          ${icon.startsWith("http") ? `<img src="${icon}" class="w-full h-full"/>` : icon}
+        </div>
+        <span>${sub}</span>
+      </div>
+    `;
+  }).join("");
+
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+}
+
+const modal = document.getElementById("player-modal");
+const modalCard = document.getElementById("modal-card");
+
+// cerrar con X
+document.getElementById("close-modal").onclick = () => {
+  modal.classList.add("hidden");
+};
+
+// cerrar haciendo click fuera
+modal.addEventListener("click", (e) => {
+  if (!modalCard.contains(e.target)) {
+    modal.classList.add("hidden");
+  }
+});
+
+// Tab switching with separate tier columns for each category
+const tierColumnMap = {
+  '1vs1': 'tier-columns-1vs1',
+  '4vs4': 'tier-columns-4vs4',
+  'control': 'tier-columns-control',
+  'stats': 'tier-columns-stats',
+  'tsw': 'tier-columns-tsw',
+  'tfl': 'tier-columns-tfl',
+  'fwt': 'tier-columns-fwt',
+  'dex': 'tier-columns-dex'
+};
+
+const regionColors = {
+  NA: "bg-red-500",
+  SA: "bg-yellow-400",
+  EU: "bg-blue-500",
+  AS: "bg-purple-500",
+  AF: "bg-green-500",
+  OC: "bg-pink-500"
+};
+
+const tierColors = {
+  1: { HT: "bg-yellow-400", LT: "bg-yellow-400/40" }, // dorado
+  2: { HT: "bg-gray-300", LT: "bg-gray-300/40" },     // plateado
+  3: { HT: "bg-orange-500", LT: "bg-orange-500/40" }, // bronce
+  4: { HT: "bg-purple-500", LT: "bg-purple-500/40" }, // morado
+  5: { HT: "bg-purple-500", LT: "bg-purple-500/40" }
+};
+
+document.querySelectorAll('.cat-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.cat-tab').forEach(b => {
+      b.classList.remove('tab-active', 'bg-card/60', 'border-accent', 'text-accent');
+      b.classList.add('text-muted', 'bg-transparent');
+      const iconDiv = b.querySelector('div');
+      if (iconDiv) {
+        iconDiv.classList.remove('bg-accent/20', 'border-accent/30');
+        iconDiv.classList.add('bg-white/5', 'border-border');
+      }
+      const span = b.querySelector('span');
+      if (span) span.classList.remove('text-accent');
+    });
+    btn.classList.add('tab-active', 'bg-card/60', 'border-accent');
+    btn.classList.remove('text-muted', 'bg-transparent');
+    const activeIconDiv = btn.querySelector('div');
+    if (activeIconDiv) {
+      activeIconDiv.classList.add('bg-accent/20', 'border-accent/30');
+      activeIconDiv.classList.remove('bg-white/5', 'border-border');
+    }
+    const activeSpan = btn.querySelector('span');
+    if (activeSpan) activeSpan.classList.add('text-accent');
+    
+    currentCat = btn.dataset.cat;
+    
+    // Toggle visibility
+    const isOverall = currentCat === 'overall';
+    document.getElementById('overall-section').style.display = isOverall ? 'block' : 'none';
+    document.getElementById('tier-section').style.display = isOverall ? 'none' : 'block';
+    document.getElementById('filters-row').style.display = isOverall ? 'flex' : 'none';
+    
+    // Hide all tier columns
+    Object.values(tierColumnMap).forEach(colId => {
+      const col = document.getElementById(colId);
+      if (col) col.style.display = 'none';
+    });
+    
+    // Show the selected category's tier columns
+    if (tierColumnMap[currentCat]) {
+      const selectedCol = document.getElementById(tierColumnMap[currentCat]);
+      if (selectedCol) selectedCol.style.display = 'grid';
+    }
+
+    if (currentCat !== "overall") {
+      renderTierCategories(allPlayers, currentCat);
+    }
+  });
+});
+
+// Mobile menu
+document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+  document.getElementById('mobile-menu').classList.toggle('hidden');
+});
+
+// Filter clear
+const posFilter = document.getElementById('filter-position');
+const regFilter = document.getElementById('filter-region');
+const clearBtn = document.getElementById('clear-filters');
+
+function checkFilters() {
+  const isDefault =
+    posFilter.value === "ALL" &&
+    regFilter.value === "ALL";
+
+  clearBtn.classList.toggle("hidden", isDefault);
+}
+
+posFilter.addEventListener('change', checkFilters);
+regFilter.addEventListener('change', checkFilters);
+clearBtn.addEventListener('click', () => {
+  clearFilters();
+});
+
+posFilter.addEventListener('change', (e) => {
+  activeFilters.position = e.target.value;
+  applyFilters();
+  checkFilters();
+});
+
+regFilter.addEventListener('change', (e) => {
+  activeFilters.region = e.target.value;
+  applyFilters();
+  checkFilters();
+});
+
+// Element SDK
+function applyConfig(config) {
+  const c = { ...defaultConfig, ...config };
+  const font = c.font_family || defaultConfig.font_family;
+  const base = c.font_size || defaultConfig.font_size;
+
+  // document.getElementById('nav-title').textContent = c.site_title;
+  document.getElementById('hero-heading').textContent = c.hero_heading;
+  document.getElementById('info-text-1').textContent = c.info_text;
+
+  document.getElementById('hero-heading').style.fontFamily = `${font}, sans-serif`;
+  document.body.style.fontFamily = `${font}, sans-serif`;
+  document.body.style.fontSize = base + 'px';
+  document.body.style.background = c.background_color;
+  document.body.style.color = c.text_color;
+
+  document.querySelectorAll('.bg-surface').forEach(el => el.style.backgroundColor = c.surface_color);
+}
+
+// window.elementSdk.init({
+//  defaultConfig,
+//  onConfigChange: async (config) => applyConfig(config),
+//  mapToCapabilities: (config) => ({
+//    recolorables: [
+//      { get: () => config.background_color || defaultConfig.background_color, set: v => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); } },
+//      { get: () => config.surface_color || defaultConfig.surface_color, set: v => { config.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); } },
+//      { get: () => config.text_color || defaultConfig.text_color, set: v => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); } },
+//      { get: () => config.accent_color || defaultConfig.accent_color, set: v => { config.accent_color = v; window.elementSdk.setConfig({ accent_color: v }); } },
+//      { get: () => config.muted_color || defaultConfig.muted_color, set: v => { config.muted_color = v; window.elementSdk.setConfig({ muted_color: v }); } },
+//    ],
+//    borderables: [],
+//    fontEditable: { get: () => config.font_family || defaultConfig.font_family, set: v => { config.font_family = v; window.elementSdk.setConfig({ font_family: v }); } },
+//    fontSizeable: { get: () => config.font_size || defaultConfig.font_size, set: v => { config.font_size = v; window.elementSdk.setConfig({ font_size: v }); } },
+//  }),
+//  mapToEditPanelValues: (config) => new Map([
+//    ['site_title', config.site_title || defaultConfig.site_title],
+//    ['hero_heading', config.hero_heading || defaultConfig.hero_heading],
+//    ['info_text', config.info_text || defaultConfig.info_text],
+//  ])
+//});
+
+async function loadPlayers() {
+  const { data, error } = await supabaseClient
+    .from("players")
+    .select(`
+      id,
+      region,
+      position,
+      roblox_username,
+      roblox_display,
+      roblox_avatar_url,
+      profiles (
+        status
+      ),
+      player_category (
+        category_id,
+        subdivisions (
+          name,
+          points
+        )
+      )
+    `);
+
+  console.log("DATA:", data);
+  console.log("ERROR:", error);
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  allPlayers = data.filter(p => p.profiles?.status === "approved");
+  renderPlayers(allPlayers);
+}
+
+function calculatePoints(player) {
+  if (!player.player_category) return 0;
+
+  return player.player_category.reduce((total, pc) => {
+    return total + (pc.subdivisions?.points || 0);
+  }, 0);
+}
+
+function getRank(points) {
+  if (points >= 350) return "Grand Master";
+  if (points >= 250) return "Master";
+  if (points >= 100) return "Ace";
+  if (points >= 50) return "Specialist";
+  if (points >= 20) return "Cadet";
+  if (points >= 10) return "Novice";
+  return "Rookie";
+}
+
+function renderTierColumn(player) {
+  if (!player.player_category) return "-";
+
+  return `
+    <div class="flex flex-wrap justify-center gap-2">
+      ${player.player_category.map(pc => {
+        const icon = categoryIcons[pc.category_id];
+        const sub = pc.subdivisions?.name || "LT5";
+
+        // detectar tier número
+        let tier = 5;
+        if (sub.includes("1")) tier = 1;
+        else if (sub.includes("2")) tier = 2;
+        else if (sub.includes("3")) tier = 3;
+        else if (sub.includes("4")) tier = 4;
+
+        const type = sub.startsWith("HT") ? "HT" : "LT";
+        const color = tierColors[tier][type];
+
+        const isImage = icon.startsWith("http");
+
+        return `
+          <div class="flex flex-col items-center text-[10px]">
+            <div class="w-6 h-6 flex items-center justify-center rounded-full border border-white/10 ${color} overflow-hidden">
+              ${
+                isImage
+                  ? `<img src="${icon}" class="w-full h-full object-cover"/>`
+                  : icon
+              }
+            </div>
+            <span class="text-muted">${sub}</span>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderTierCategories(players, categoryName) {
+  if (!players) {
+    console.error("NO HAY PLAYERS");
+    return;
+  }
+
+  const categoryId = categoryNameToId[categoryName];
+
+  const tierMap = {
+    1: [], // Tier 1
+    2: [],
+    3: [],
+    4: [],
+    5: []
+  };
+
+  console.log("CURRENT CAT:", categoryName);
+  console.log("CATEGORY ID:", categoryId);
+  console.log("PLAYER DATA:", players);
+
+  players.forEach(p => {
+
+    console.log("PLAYER CATEGORIES:", p.player_category);
+
+    const pc = p.player_category.find(c => c.category_id === categoryId);
+    if (!pc) return;
+
+    const sub = pc.subdivisions?.name || "LT5";
+
+    // 🔥 lógica para convertir HT/LT a Tier 1–5
+    let tier = 5;
+
+    if (sub.includes("1")) tier = 1;
+    else if (sub.includes("2")) tier = 2;
+    else if (sub.includes("3")) tier = 3;
+    else if (sub.includes("4")) tier = 4;
+    else tier = 5;
+
+    tierMap[tier].push({
+      player: p,
+      sub
+    });
+  });
+
+  // limpiar columnas
+  for (let i = 1; i <= 5; i++) {
+    const container = document.getElementById(`tier-${i}-body`);
+    container.innerHTML = "";
+  }
+
+  
+  // render
+  Object.entries(tierMap).forEach(([tier, list]) => {
+    list.sort((a, b) => {
+      // HT primero, luego LT
+      if (a.sub.startsWith("HT") && !b.sub.startsWith("HT")) return -1;
+      if (!a.sub.startsWith("HT") && b.sub.startsWith("HT")) return 1;
+      return 0;
+    });
+
+    const container = document.getElementById(`tier-${tier}-body`);
+
+    if (list.length === 0) {
+      container.innerHTML = `<div class="py-6 text-center text-muted/40 text-xs">No players</div>`;
+      return;
+    }
+
+    list.forEach(({ player, sub }) => {
+      container.innerHTML += `
+        <div onclick='openPlayerModal(${JSON.stringify(player)})'
+          class="group relative flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer
+          transition-all duration-200
+          ${sub.startsWith("HT") ? "bg-white/10" : "bg-white/5"}
+          hover:translate-x-1">
+
+          <!-- Barra izquierda por región -->
+          <div class="w-1 h-6 rounded ${regionColors[player.region] || "bg-gray-500"}"></div>
+
+          <!-- Avatar -->
+          <img src="${player.roblox_avatar_url || 'https://via.placeholder.com/40'}"
+              class="w-8 h-8 rounded"/>
+
+          <!-- Nombre -->
+          <div class="text-xs font-semibold truncate">
+            ${player.roblox_display || player.roblox_username || "Unknown"}
+          </div>
+
+          <!-- Región al hacer hover -->
+          <div class="absolute left-0 top-0 h-full flex items-center
+                      opacity-0 group-hover:opacity-100
+                      transition-all duration-200
+                      -translate-x-6 group-hover:translate-x-0">
+
+            <div class="px-2 py-1 text-[10px] font-bold text-black rounded
+                        ${regionColors[player.region] || "bg-gray-500"}">
+              ${player.region || "??"}
+            </div>
+          </div>
+
+        </div>
+      `;
+    });
+  });
+}
+
+const categoryMap = {
+  1: "1vs1",
+  2: "4vs4",
+  3: "Control",
+  4: "Stats",
+  5: "TSW",
+  6: "TFL",
+  7: "FWT",
+  8: "DEX"
+};
+
+const categoryNameToId = {
+  "1vs1": 1,
+  "4vs4": 2,
+  "control": 3,
+  "stats": 4,
+  "tsw": 5,
+  "tfl": 6,
+  "fwt": 7,
+  "dex": 8
+};
+
+const categoryIcons = {
+  1: "https://i.ibb.co/ksZc8m5n/image.png", // 1vs1
+  2: "https://i.ibb.co/dw3TnN6Q/image.png", // 4vs4
+  3: "https://i.ibb.co/V0p1MpGf/image.png", // Control
+  4: "https://i.ibb.co/h1xNNHQX/image.png", // Stats
+  5: "https://tr.rbxcdn.com/180DAY-5bfa663452af4d31504e3b0da0251849/420/420/Image/Webp/noFilter", // TSW
+  6: "https://i.ibb.co/Y4WNpv03/image-removebg-preview.png", // TFL
+  7: "https://i.ibb.co/F4KhzVjn/channels4-profile-removebg-preview.png", // FWT
+  8: "https://i.ibb.co/DfZxn7Hk/image-removebg-preview-1.png" // DEX
+};
+
+function renderCategories(player) {
+  if (!player.player_category) return "";
+
+  return player.player_category.map(pc => {
+    const catName = categoryMap[pc.category_id];
+    const icon = categoryIcons[catName] || "❔";
+    const sub = pc.subdivisions?.name || "-";
+
+    return `
+      <div class="flex flex-col items-center text-[10px]">
+        <div class="w-6 h-6 flex items-center justify-center rounded-full border border-accent/30 bg-accent/10">
+          ${icon}
+        </div>
+        <span class="text-muted">${sub}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderPlayers(players) {
+  const table = document.getElementById("table-body");
+
+  if (!players || players.length === 0) {
+    table.innerHTML = `<p class="text-center py-10 text-muted">No players</p>`;
+    return;
+  }
+
+  table.innerHTML = "";
+
+  // 🔥 ordenar por puntos
+  players.sort((a, b) => calculatePoints(b) - calculatePoints(a));
+
+  players.forEach((p, i) => {
+    const points = calculatePoints(p);
+    const rank = getRank(points);
+
+    table.innerHTML += `
+      <div onclick='openPlayerModal(${JSON.stringify(p)})' class="grid px-4 sm:px-6 py-3 border-b border-border items-center cursor-pointer hover:bg-white/5"
+        style="grid-template-columns: 0.3fr 0.5fr 1.5fr 0.4fr 0.8fr;">
+        
+        <div class="text-center font-bold">${i + 1}</div>
+        <div class="text-center">${p.position || "-"}</div>
+        
+        <div class="flex items-center gap-3">
+          <img src="${p.roblox_avatar_url || 'https://via.placeholder.com/24'}" class="w-6 h-6 rounded-full"/>
+          
+          <div>
+            <div>${p.roblox_display || p.roblox_username || "Unknown"}</div>
+            <div class="text-xs text-muted">${rank} (${points} points)</div>
+          </div>
+        </div>
+
+        <div class="text-center">${p.region || "-"}</div>
+
+        <div class="text-center">
+          ${renderTierColumn(p)}
+        </div>
+      </div>
+    `;
+  });
+  document.getElementById("stat-players").textContent = players.length;
+}
+
+function applyFilters() {
+  let filtered = [...allPlayers];
+
+  // 🔹 FILTRO POR REGIÓN
+  if (activeFilters.region !== "ALL") {
+    filtered = filtered.filter(p => p.region === activeFilters.region);
+  }
+
+  // 🔹 FILTRO POR POSICIÓN (ST / CDM / GK)
+  if (activeFilters.position !== "ALL") {
+    filtered = filtered.filter(p => p.position === activeFilters.position);
+  }
+
+  renderPlayers(filtered);
+}
+
+function clearFilters() {
+  activeFilters.region = "ALL";
+  activeFilters.position = "ALL";
+
+  document.getElementById("filter-region").value = "ALL";
+  document.getElementById("filter-position").value = "ALL";
+
+  renderPlayers(allPlayers);
+  checkFilters();
+}
+
+document.getElementById("filter-region").addEventListener("change", (e) => {
+  activeFilters.region = e.target.value;
+  applyFilters();
+});
+
+document.getElementById("filter-position").addEventListener("change", (e) => {
+  activeFilters.position = e.target.value;
+  applyFilters();
+});
+
+// ===== MODAL CONTROL =====
+const registerModal = document.getElementById("register-modal");
+const registerCard = document.getElementById("register-card");
+
+document.getElementById("open-auth").onclick = () => {
+  registerModal.classList.remove("hidden");
+  registerModal.classList.add("flex");
+};
+
+document.getElementById("close-register").onclick = () => {
+  registerModal.classList.add("hidden");
+};
+
+registerModal.addEventListener("click", (e) => {
+  if (!registerCard.contains(e.target)) {
+    registerModal.classList.add("hidden");
+  }
+});
+
+// ===== STEPS =====
+function nextStep(step) {
+  document.querySelectorAll("#step-1, #step-2, #step-3").forEach(s => s.classList.add("hidden"));
+  document.getElementById(`step-${step}`).classList.remove("hidden");
+}
+
+// ===== ROBLOX API =====
+let robloxData = {};
+
+async function fetchRobloxUser() {
+  const username = document.getElementById("reg-roblox").value;
+
+  try {
+    const res = await fetch("https://ccluksocicjqdhbhdyvc.supabase.co/functions/v1/smooth-worker", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": supabaseKey,
+        "Authorization": `Bearer ${supabaseKey}`
+      },
+      body: JSON.stringify({ username })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert("Usuario no encontrado");
+      return;
+    }
+
+    robloxData = data;
+
+    document.getElementById("roblox-avatar").src = data.avatar;
+    document.getElementById("roblox-display").textContent = data.display;
+
+    nextStep(3);
+
+  } catch (err) {
+    console.error(err);
+    alert("Error conectando con el servidor");
+  }
+}
+
+// ===== REGISTRO =====
+async function confirmRegister() {
+  const username = document.getElementById("reg-username").value;
+  const password = document.getElementById("reg-password").value;
+  const position = document.getElementById("reg-position").value;
+  const region = document.getElementById("reg-region").value;
+
+  // 1. crear usuario
+  const { data, error } = await supabaseClient.auth.signUp({
+    email: username + "@tfb.com",
+    password
+  });
+
+  console.log("SIGNUP DATA:", data);
+  console.log("SIGNUP ERROR:", error);
+
+  if (error) {
+    console.error("AUTH ERROR:", error);
+    alert(error.message);
+    return;
+  }
+
+  const { data: userData } = await supabaseClient.auth.getUser();
+  const user = userData.user;
+
+  await new Promise(resolve => setTimeout(resolve, 300));
+
+  console.log("USER:", user);
+
+  if (!user) {
+    alert("Error creando usuario ❌");
+    return;
+  }
+
+  // 2. crear profile
+  const { data: profileData, error: profileError } =
+    await supabaseClient.from("profiles").insert({
+      id: user.id,
+      username,
+      status: "pending"
+    });
+
+  console.log("PROFILE:", profileData);
+  console.log("PROFILE ERROR:", profileError);
+
+  if (profileError) {
+    if (profileError.code === "23505") {
+      alert("Ese username ya existe ❌");
+      return;
+    }
+    else {
+      alert("Error creando perfil");
+      return;
+    }
+  }
+
+  // 3. actualizar player
+  const { data: playerData, error: playerError } =
+    await supabaseClient
+      .from("players")
+      .upsert({
+        profile_id: user.id,
+        region,
+        position,
+        roblox_username: robloxData.username,
+        roblox_user_id: robloxData.id,
+        roblox_display: robloxData.display,
+        roblox_avatar_url: robloxData.avatar
+      }, {
+        onConflict: "profile_id"
+      });
+
+  console.log("PLAYER:", playerData);
+  console.log("PLAYER ERROR:", playerError);
+
+  if (playerError) {
+    alert("Error actualizando player");
+    return;
+  }
+
+  alert("Solicitud enviada ✅");
+  registerModal.classList.add("hidden");
+}
+
+function renderUser(user, profile, player) {
+  const container = document.getElementById("auth-area");
+
+  container.innerHTML = `
+    <div class="relative">
+      
+      <!-- USER BUTTON -->
+      <div id="user-menu-btn" class="flex items-center gap-2 cursor-pointer">
+        <img src="${player?.roblox_avatar_url || 'https://via.placeholder.com/32'}"
+            class="w-8 h-8 rounded-full border border-accent"/>
+
+        <span class="text-sm font-semibold">
+          ${player?.roblox_display || profile?.username || "User"}
+        </span>
+      </div>
+
+      <!-- DROPDOWN -->
+      <div id="user-dropdown"
+        class="hidden absolute right-0 mt-2 w-44 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-50">
+
+        <button id="user-info"
+          class="w-full text-left px-4 py-2 text-sm hover:bg-white/5">
+          Info
+        </button>
+
+        ${profile?.role === "admin" ? `
+          <button id="admin-panel"
+            class="w-full text-left px-4 py-2 text-sm hover:bg-yellow-500/20 text-yellow-400">
+            Panel Admin
+          </button>
+        ` : ""}
+
+        <button id="user-logout"
+          class="w-full text-left px-4 py-2 text-sm hover:bg-red-500/20 text-red-400">
+          Cerrar sesión
+        </button>
+
+      </div>
+
+    </div>
+  `;
+
+  const btn = document.getElementById("user-menu-btn");
+  const dropdown = document.getElementById("user-dropdown");
+
+  // toggle dropdown
+  btn.onclick = () => {
+    dropdown.classList.toggle("hidden");
+    console.log("CLICK ADMIN");
+  };
+
+  // cerrar si clic fuera
+  document.addEventListener("click", (e) => {
+    if (!container.contains(e.target)) {
+      dropdown.classList.add("hidden");
+    }
+  });
+
+  // ✅ AHORA SÍ (DESPUÉS de definir dropdown)
+  if (profile?.role === "admin") {
+    document.getElementById("admin-panel").onclick = () => {
+      dropdown.classList.add("hidden");
+      openAdminPanel();
+    };
+  }
+
+  // INFO (🔥 usa tu modal existente)
+  document.getElementById("user-info").onclick = () => {
+    dropdown.classList.add("hidden");
+
+    // 🔥 aseguramos que el usuario esté en el array
+    const exists = allPlayers.find(p => p.id === player.id);
+    if (!exists) {
+      allPlayers.push(player);
+    }
+
+    openPlayerModal(player);
+  };
+
+  // LOGOUT
+  document.getElementById("user-logout").onclick = async () => {
+    await supabaseClient.auth.signOut();
+    location.reload();
+  };
+}
+
+function switchAdminTab(tab) {
+  document.getElementById("admin-pending").classList.toggle("hidden", tab !== "pending");
+  document.getElementById("admin-tiers").classList.toggle("hidden", tab !== "tiers");
+}
+
+async function loginUser() {
+  const username = document.getElementById("reg-username").value;
+  const password = document.getElementById("reg-password").value;
+
+  if (!username || !password) {
+    alert("Completa usuario y contraseña ❌");
+    return;
+  }
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
+    email: username + "@tfb.com",
+    password
+  });
+
+  if (error) {
+    alert("Credenciales incorrectas ❌");
+    return;
+  }
+
+  alert("Login exitoso ✅");
+  location.reload();
+}
+
+function validateStep1() {
+  const username = document.getElementById("reg-username").value.trim();
+  const password = document.getElementById("reg-password").value.trim();
+
+  if (!username || !password) {
+    alert("Debes completar usuario y contraseña ❌");
+    return;
+  }
+
+  // opcional: longitud mínima
+  if (password.length < 6) {
+    alert("La contraseña debe tener al menos 6 caracteres ❌");
+    return;
+  }
+
+  nextStep(2);
+}
+
+const userInput = document.getElementById("reg-username");
+const passInput = document.getElementById("reg-password");
+const btn = document.getElementById("register-next");
+
+function checkInputs() {
+  if (userInput.value.trim() && passInput.value.trim()) {
+    btn.disabled = false;
+    btn.classList.remove("opacity-50", "cursor-not-allowed");
+  } else {
+    btn.disabled = true;
+    btn.classList.add("opacity-50", "cursor-not-allowed");
+  }
+}
+
+async function openAdminPanel() {
+    const modal = document.getElementById("admin-modal");
+
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+
+    // 🔥 reset aquí en vez de close
+    document.getElementById("admin-search").value = "";
+    document.getElementById("admin-search-results").innerHTML = "";
+    document.getElementById("admin-editor").classList.add("hidden");
+    document.getElementById("admin-pending").classList.remove("hidden");
+    document.getElementById("admin-tiers").classList.add("hidden");
+    
+    const { data } = await supabaseClient
+        .from("profiles")
+        .select(`
+            id, username, status,
+            players ( roblox_display, roblox_avatar_url )
+        `)
+        .eq("status", "pending");
+
+    renderAdminList(data || []);
+}
+
+
+function renderAdminList(users) {
+  const container = document.getElementById("admin-list");
+
+  if (!users || users.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-10 text-muted">
+        No hay usuarios pendientes 👀
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = users.map(u => `
+    <div class="flex items-center justify-between bg-card p-3 rounded">
+      <div class="flex items-center gap-3">
+        <img src="${u.players?.roblox_avatar_url || ''}" class="w-8 h-8 rounded"/>
+        <span>${u.players?.roblox_display || u.username}</span>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="approveUser('${u.id}')" class="px-3 py-1 bg-green-500 text-black rounded text-xs">
+          Aprobar
+        </button>
+        <button onclick="rejectUser('${u.id}')" class="px-3 py-1 bg-red-500 text-white rounded text-xs">
+          Rechazar
+        </button>
+      </div>
+    </div>
+  `).join("");
+}
+
+async function approveUser(id) {
+  await supabaseClient
+    .from("profiles")
+    .update({ status: "approved" })
+    .eq("id", id);
+
+  openAdminPanel(); // refresh
+}
+
+async function rejectUser(id) {
+  await supabaseClient
+    .from("profiles")
+    .update({ status: "rejected" })
+    .eq("id", id);
+
+  openAdminPanel();
+}
+
+userInput.addEventListener("input", checkInputs);
+passInput.addEventListener("input", checkInputs);
+
+let selectedPlayer = null;
+
+document.getElementById("admin-search").addEventListener("input", (e) => {
+  const query = e.target.value.toLowerCase();
+
+  const results = allPlayers.filter(p =>
+    (p.roblox_display || p.roblox_username || "")
+      .toLowerCase()
+      .includes(query)
+  ).slice(0, 5);
+
+  const container = document.getElementById("admin-search-results");
+
+  container.innerHTML = results.map(p => `
+    <div onclick='selectPlayer(${JSON.stringify(p)})'
+      class="p-2 bg-card rounded cursor-pointer hover:bg-white/5 text-sm">
+      ${p.roblox_display || p.roblox_username}
+    </div>
+  `).join("");
+});
+
+function selectPlayer(player) {
+  selectedPlayer = player;
+
+  document.getElementById("admin-editor").classList.remove("hidden");
+  document.getElementById("admin-player-name").textContent =
+    player.roblox_display || player.roblox_username;
+
+  const container = document.getElementById("admin-tiers-editor");
+
+  container.innerHTML = player.player_category.map(pc => `
+    <div class="flex flex-col gap-1">
+      <span class="text-xs">${categoryMap[pc.category_id]}</span>
+
+      <select data-cat="${pc.category_id}"
+        class="bg-card border border-border px-2 py-1 rounded text-sm">
+
+        <option ${pc.subdivisions?.name === "HT1" ? "selected" : ""}>HT1</option>
+        <option ${pc.subdivisions?.name === "LT1" ? "selected" : ""}>LT1</option>
+        <option ${pc.subdivisions?.name === "HT2" ? "selected" : ""}>HT2</option>
+        <option ${pc.subdivisions?.name === "LT2" ? "selected" : ""}>LT2</option>
+        <option ${pc.subdivisions?.name === "HT3" ? "selected" : ""}>HT3</option>
+        <option ${pc.subdivisions?.name === "LT3" ? "selected" : ""}>LT3</option>
+        <option ${pc.subdivisions?.name === "HT4" ? "selected" : ""}>HT4</option>
+        <option ${pc.subdivisions?.name === "LT4" ? "selected" : ""}>LT4</option>
+        <option ${pc.subdivisions?.name === "HT5" ? "selected" : ""}>HT5</option>
+        <option ${pc.subdivisions?.name === "LT5" ? "selected" : ""}>LT5</option>
+
+      </select>
+    </div>
+  `).join("");
+}
+
+async function saveTiers() {
+  if (!selectedPlayer) return;
+
+  const selects = document.querySelectorAll("#admin-tiers-editor select");
+
+  for (const sel of selects) {
+    const catId = parseInt(sel.dataset.cat);
+    const subName = sel.value;
+
+    // 🔥 buscar ID de la subdivision
+    const { data: subData, error: subError } = await supabaseClient
+      .from("subdivisions")
+      .select("id")
+      .eq("name", subName)
+      .single();
+
+    if (subError || !subData) {
+      console.error("❌ ERROR BUSCANDO SUBDIVISION:", subError);
+      continue;
+    }
+
+    const { error } = await supabaseClient
+      .from("player_category")
+      .update({ subdivision_id: subData.id }) // 🔥 AQUÍ ESTÁ EL FIX
+      .eq("player_id", selectedPlayer.id)
+      .eq("category_id", catId);
+
+    if (error) {
+      console.error("❌ ERROR UPDATE:", error);
+    }
+  }
+
+  alert("Tiers actualizados ✅");
+  loadPlayers();
+}
+
+document.getElementById("close-admin").onclick = closeAdminModal;
+
+const adminModal = document.getElementById("admin-modal");
+const adminCard = document.querySelector("#admin-modal > div");
+
+adminModal.addEventListener("click", (e) => {
+  if (e.target === adminModal) {
+    closeAdminModal();
+  }
+});
+
+function closeAdminModal() {
+    const modal = document.getElementById("admin-modal");
+
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+}
+
+console.log("ANTES DE LOAD");
+loadPlayers();
+
+supabaseClient
+  .channel('players-changes')
+  .on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'profiles' },
+    (payload) => {
+      console.log("CAMBIO DETECTADO:", payload);
+      loadPlayers(); // 🔥 recarga automáticamente
+    }
+  )
+  .subscribe();
+
+console.log("DESPUÉS DE LOAD");
+lucide.createIcons();
+  </script>
+</html>
