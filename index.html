@@ -149,7 +149,7 @@ body { font-family: 'Outfit', sans-serif; background: #0a0a0f; color: #e0e0f0; }
         <div id="auth-area">
           <button id="open-auth"
           class="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-accent hover:bg-accentDim text-black text-sm font-semibold transition">
-          📝 Registro
+          📝 Register
           </button>
         </div>  
      </div>
@@ -215,6 +215,12 @@ body { font-family: 'Outfit', sans-serif; background: #0a0a0f; color: #e0e0f0; }
         <p class="text-xs text-muted/60">Players will appear here once added from the backend</p>
        </div>
       </div>
+     </div>
+     <div class="text-center mt-4">
+      <button id="load-more-btn"
+        class="px-4 py-2 bg-accent text-black rounded font-semibold hidden">
+        Load More
+      </button>
      </div>
     </div><!-- TIER COLUMNS (For other 8 categories) -->
     <div id="tier-section" class="hidden fade-up" style="animation-delay:0.2s">
@@ -381,7 +387,7 @@ body { font-family: 'Outfit', sans-serif; background: #0a0a0f; color: #e0e0f0; }
 
           <!-- STEP 2 -->
           <div id="step-2" class="hidden">
-            <h2 class="text-lg font-bold mb-4">Datos del jugador</h2>
+            <h2 class="text-lg font-bold mb-4">Player Data</h2>
 
             <select id="reg-position" class="w-full mb-3 px-3 py-2 rounded bg-card border border-border">
               <option value="ST">ST</option>
@@ -398,18 +404,18 @@ body { font-family: 'Outfit', sans-serif; background: #0a0a0f; color: #e0e0f0; }
               <option value="OC">OC</option>
             </select>
 
-            <input id="reg-roblox" placeholder="Usuario de Roblox"
+            <input id="reg-roblox" placeholder="Roblox User"
               class="w-full mb-4 px-3 py-2 rounded bg-card border border-border">
 
             <button onclick="fetchRobloxUser()"
               class="w-full bg-accent text-black py-2 rounded font-semibold">
-              Buscar cuenta
+              Look for account
             </button>
           </div>
 
           <!-- STEP 3 -->
           <div id="step-3" class="hidden text-center">
-            <h2 class="text-lg font-bold mb-4">¿Es tu cuenta?</h2>
+            <h2 class="text-lg font-bold mb-4">¿Is this your account?</h2>
 
             <img id="roblox-avatar" class="w-20 h-20 mx-auto rounded-full mb-3">
 
@@ -417,12 +423,12 @@ body { font-family: 'Outfit', sans-serif; background: #0a0a0f; color: #e0e0f0; }
 
             <button onclick="confirmRegister()"
               class="w-full bg-accent text-black py-2 rounded font-semibold mb-2">
-              Confirmar
+              Confirm
             </button>
 
             <button onclick="nextStep(2)"
               class="text-sm text-muted">
-              Volver
+              Back
             </button>
           </div>
 
@@ -544,7 +550,11 @@ async function checkUser() {
 checkUser();
 
 let currentCat = 'overall';
+let visibleCount = 10;
+let currentList = [];
 let allPlayers = [];
+let currentView = "overall"; 
+let isLoadingMore = false;
 
 let activeFilters = {
   region: "ALL",
@@ -808,6 +818,7 @@ async function loadPlayers() {
   }
 
   allPlayers = data.filter(p => p.profiles?.status === "approved");
+  visibleCount = 10;
   renderPlayers(allPlayers);
 }
 
@@ -1034,10 +1045,16 @@ function renderPlayers(players) {
 
   table.innerHTML = "";
 
-  // 🔥 ordenar por puntos
-  players.sort((a, b) => calculatePoints(b) - calculatePoints(a));
+  // guardar lista actual
+  currentList = [...players];
 
-  players.forEach((p, i) => {
+  // ordenar
+  currentList.sort((a, b) => calculatePoints(b) - calculatePoints(a));
+
+  // 🔥 SOLO mostrar los visibles
+  const visiblePlayers = currentList.slice(0, visibleCount);
+
+  visiblePlayers.forEach((p, i) => {
     const points = calculatePoints(p);
     const rank = getRank(points);
 
@@ -1065,10 +1082,31 @@ function renderPlayers(players) {
       </div>
     `;
   });
+
   document.getElementById("stat-players").textContent = players.length;
+
+  renderLoadMoreButton();
+  isLoadingMore = false;
 }
 
+function renderLoadMoreButton() {
+  const btn = document.getElementById("load-more-btn");
+
+  if (visibleCount >= currentList.length) {
+    btn.classList.add("hidden");
+    return;
+  }
+
+  btn.classList.remove("hidden");
+}
+
+document.getElementById("load-more-btn").addEventListener("click", () => {
+  visibleCount += 10;
+  renderPlayers(currentList);
+});
+
 function applyFilters() {
+
   let filtered = [...allPlayers];
 
   // 🔹 FILTRO POR REGIÓN
@@ -1081,6 +1119,7 @@ function applyFilters() {
     filtered = filtered.filter(p => p.position === activeFilters.position);
   }
 
+  visibleCount = 10;
   renderPlayers(filtered);
 }
 
@@ -1091,6 +1130,7 @@ function clearFilters() {
   document.getElementById("filter-region").value = "ALL";
   document.getElementById("filter-position").value = "ALL";
 
+  visibleCount = 10;
   renderPlayers(allPlayers);
   checkFilters();
 }
@@ -1582,6 +1622,62 @@ function closeAdminModal() {
 
 console.log("ANTES DE LOAD");
 loadPlayers();
+
+window.addEventListener("scroll", () => {
+  const scrollBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
+
+  if (!scrollBottom) return;
+
+  // 🔥 SOLO categorías usan scroll
+  if (currentView === "category") {
+    loadMoreCategory();
+  }
+});
+
+function loadMorePlayers() {
+  if (isLoadingMore) return;
+
+  if (visibleCount >= currentList.length) return;
+
+  isLoadingMore = true;
+
+  visibleCount += 10;
+
+  renderPlayers(currentList);
+}
+
+function loadMoreCategory() {
+  if (isLoadingMore) return;
+
+  if (visibleCount >= currentList.length) return;
+
+  isLoadingMore = true;
+
+  visibleCount += 10;
+
+  renderPlayers(currentList);
+}
+
+function openCategory(categoryName) {
+  currentView = "category";
+
+  visibleCount = 10;
+
+  // aquí filtras players por categoría
+  const filtered = allPlayers.filter(p => {
+    return p.player_category?.some(pc => pc.category_id === categoryName);
+  });
+
+  renderPlayers(filtered);
+}
+
+function openOverall() {
+  currentView = "overall";
+
+  visibleCount = 10;
+
+  renderPlayers(allPlayers);
+}
 
 supabaseClient
   .channel('players-changes')
