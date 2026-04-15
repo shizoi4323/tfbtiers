@@ -1454,7 +1454,7 @@ async function openAdminPanel() {
         .from("profiles")
         .select(`
             id, username, status,
-            players ( roblox_display, roblox_avatar_url, region, position )
+            players ( roblox_display, roblox_avatar_url, region, position, roblox_username )
         `)
         .eq("status", "pending");
 
@@ -1478,7 +1478,7 @@ function renderAdminList(users) {
     <div class="flex items-center justify-between bg-card p-3 rounded">
       <div class="flex items-center gap-3">
         <img src="${u.players?.roblox_avatar_url || ''}" class="w-8 h-8 rounded"/>
-        <span>${u.players?.roblox_display || u.username} ${u.players?.region} ${u.players?.position}</span>
+        <span>${u.players?.roblox_display || u.username} (${u.players?.roblox_username}) ${u.players?.region} ${u.players?.position}</span>
       </div>
       <div class="flex gap-2">
         <button onclick="approveUser('${u.id}')" class="px-3 py-1 bg-green-500 text-black rounded text-xs">
